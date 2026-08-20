@@ -1,57 +1,47 @@
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
 
-  const { q } = req.query;
-  if (!q) {
-    return res.status(400).json({ error: 'Query parameter q is required' });
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
+
+  const { query } = req.query;
+  if (!query) return res.status(400).json({ success: false, message: 'Query parameter required' });
 
   try {
-    const targetUrl = `https://freefy.app/api/v1/search?loader=searchPage&query=${encodeURIComponent(q)}`;
+    const targetUrl = `https://freefy.app/api/v1/search?loader=searchPage&query=${encodeURIComponent(query)}`;
     const response = await fetch(targetUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json, text/plain, */*',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
         'Referer': 'https://freefy.app/'
       }
     });
 
     if (!response.ok) {
-      return res.status(response.status).json({ error: 'Failed to fetch search results from source' });
+      return res.status(502).json({ success: false, message: 'Failed to fetch tracks' });
     }
 
-    const data = await response.json();
-    
-    // Normalize tracks list to hide source structure and provide a clean payload
-    let tracks = [];
-    if (data.tracks && Array.isArray(data.tracks)) {
-      tracks = data.tracks;
-    } else if (data.results && Array.isArray(data.results)) {
-      tracks = data.results;
-    } else if (Array.isArray(data)) {
-      tracks = data;
-    }
+    const json = await response.json();
+    const rawTracks = json?.results?.tracks?.data || [];
 
-    const sanitizedTracks = tracks.map(item => ({
-      id: item.id || item.track_id || item._id,
-      title: item.title || item.name || 'Unknown Track',
-      artist: item.artist?.name || item.artists?.[0]?.name || item.artist_name || 'Unknown Artist',
-      album: item.album?.name || item.album_name || '',
-      cover: item.album?.image || item.image || item.cover_url || '',
-      duration: item.duration || 0
-    }));
+    // Exact payload parsing: title, artist, album image & track id
+    const tracks = rawTracks.map(item => {
+      const artistName = item.artists && item.artists.length > 0 
+        ? item.artists.map(a => a.name).join(', ') 
+        : 'Unknown Artist';
+      
+      const coverImage = item.album?.image || item.image || (item.artists && item.artists[0]?.image_small) || '';
 
-    return res.status(200).json({
-      success: true,
-      count: sanitizedTracks.length,
-      data: sanitizedTracks
+      return {
+        id: item.id,
+        name: item.name,
+        artist: artistName,
+        album: item.album?.name || '',
+        image: coverImage
+      };
     });
+
+    return res.status(200).json({ success: true, count: tracks.length, data: tracks });
   } catch (error) {
-    return res.status(500).json({ error: 'Internal Server Error', message: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 }
