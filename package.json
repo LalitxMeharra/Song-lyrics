@@ -1,0 +1,10 @@
+{
+  "name": "lyrics-downloader",
+  "version": "1.0.0",
+  "description": "Clean lyrics search and download web app with serverless API masking",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {}
+}
