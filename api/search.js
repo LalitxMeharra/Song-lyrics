@@ -9,21 +9,36 @@ export default async function handler(req, res) {
 
   try {
     const targetUrl = `https://freefy.app/api/v1/search?loader=searchPage&query=${encodeURIComponent(query)}`;
+    
     const response = await fetch(targetUrl, {
+      method: 'GET',
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-        'Referer': 'https://freefy.app/'
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'en-US,en;q=0.9,hi;q=0.8',
+        'Referer': 'https://freefy.app/',
+        'Origin': 'https://freefy.app',
+        'Sec-Ch-Ua': '"Chromium";v="124", "Android WebView";v="124", "Not-A.Brand";v="99"',
+        'Sec-Ch-Ua-Mobile': '?1',
+        'Sec-Ch-Ua-Platform': '"Android"',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin'
       }
     });
 
     if (!response.ok) {
-      return res.status(502).json({ success: false, message: 'Failed to fetch tracks' });
+      const errText = await response.text();
+      return res.status(response.status).json({ 
+        success: false, 
+        message: `Source API error: ${response.status}`, 
+        raw: errText.slice(0, 150) 
+      });
     }
 
     const json = await response.json();
     const rawTracks = json?.results?.tracks?.data || [];
 
-    // Exact payload parsing: title, artist, album image & track id
     const tracks = rawTracks.map(item => {
       const artistName = item.artists && item.artists.length > 0 
         ? item.artists.map(a => a.name).join(', ') 
