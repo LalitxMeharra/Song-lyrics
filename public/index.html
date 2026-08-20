@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lyrify - Search & Download Song Lyrics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --card-bg: #121826;
+      --card-border: #1e293b;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --accent-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --glass: rgba(18, 24, 38, 0.7);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.12) 0px, transparent 50%);
+      background-attachment: fixed;
+    }
+
+    .navbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.2rem 2rem;
+      border-bottom: 1px solid var(--card-border);
+      background: var(--glass);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      font-size: 1.4rem;
+      font-weight: 800;
+      background: var(--accent-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .container {
+      max-width: 1000px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem;
+      flex: 1;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .hero h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: 0.8rem;
+      letter-spacing: -0.02em;
+    }
+
+    .hero p {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+    }
+
+    .search-box {
+      display: flex;
+      gap: 0.75rem;
+      background: var(--card-bg);
+      padding: 0.5rem;
+      border-radius: 1rem;
+      border: 1px solid var(--card-border);
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+      margin-bottom: 2rem;
+    }
+
+    .search-box input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-main);
+      padding: 0.8rem 1.2rem;
+      font-size: 1rem;
+    }
+
+    .search-box input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .search-box button {
+      background: var(--accent-gradient);
+      color: white;
+      border: none;
+      outline: none;
+      padding: 0.8rem 1.8rem;
+      border-radius: 0.75rem;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: opacity 0.2s ease, transform 0.1s ease;
+    }
+
+    .search-box button:hover {
+      opacity: 0.95;
+    }
+
+    .search-box button:active {
+      transform: scale(0.98);
+    }
+
+    /* Status indicators */
+    .status-msg {
+      text-align: center;
+      color: var(--text-muted);
+      margin: 2rem 0;
+      font-size: 1.05rem;
+      display: none;
+    }
+
+    /* Grid Layout */
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .track-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 1rem;
+      padding: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      cursor: pointer;
+      transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .track-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    .track-card img {
+      width: 60px;
+      height: 60px;
+      border-radius: 0.75rem;
+      object-fit: cover;
+      background-color: #1e293b;
+    }
+
+    .track-info {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .track-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 0.25rem;
+    }
+
+    .track-artist {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Lyrics Display Section */
+    .lyrics-view {
+      display: none;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 1.25rem;
+      padding: 2rem;
+      margin-top: 1rem;
+      position: relative;
+    }
+
+    .lyrics-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 1.5rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .lyrics-track-detail h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .lyrics-track-detail p {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 0.65rem 1.2rem;
+      border-radius: 0.6rem;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      border: 1px solid var(--card-border);
+      background: #1e293b;
+      color: var(--text-main);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background: #334155;
+    }
+
+    .btn-primary {
+      background: var(--accent-gradient);
+      border: none;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.92;
+    }
+
+    .lyrics-content {
+      white-space: pre-wrap;
+      font-size: 1.05rem;
+      line-height: 1.9;
+      color: #cbd5e1;
+      max-height: 550px;
+      overflow-y: auto;
+      padding-right: 0.5rem;
+    }
+
+    .lyrics-content::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .lyrics-content::-webkit-scrollbar-thumb {
+      background: var(--card-border);
+      border-radius: 4px;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: #10b981;
+      color: white;
+      padding: 0.8rem 1.5rem;
+      border-radius: 0.75rem;
+      font-weight: 600;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 1000;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    @media (max-width: 640px) {
+      .hero h1 { font-size: 1.9rem; }
+      .search-box { flex-direction: column; }
+      .search-box button { width: 100%; }
+      .lyrics-header { flex-direction: column; }
+      .action-buttons { width: 100%; }
+      .btn { flex: 1; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="logo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+      Lyrify
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="hero">
+      <h1>Instant Song Lyrics Finder</h1>
+      <p>Search track, read lyrics, and export as .TXT with one tap</p>
+    </div>
+
+    <form class="search-box" id="searchForm">
+      <input type="text" id="searchInput" placeholder="Search track name or artist (e.g. Khat, Kesariya)..." required />
+      <button type="submit" id="searchBtn">Search</button>
+    </form>
+
+    <div class="status-msg" id="statusMsg">Searching for tracks...</div>
+
+    <div class="results-grid" id="resultsGrid"></div>
+
+    <div class="lyrics-view" id="lyricsView">
+      <div class="lyrics-header">
+        <div class="lyrics-track-detail">
+          <h2 id="currentTitle">Track Name</h2>
+          <p id="currentArtist">Artist Name</p>
+        </div>
+        <div class="action-buttons">
+          <button class="btn" id="copyBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            Copy
+          </button>
+          <button class="btn btn-primary" id="downloadBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Download .TXT
+          </button>
+        </div>
+      </div>
+      <div class="lyrics-content" id="lyricsContent"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Lyrics copied to clipboard!</div>
+
+  <script>
+    const searchForm = document.getElementById('searchForm');
+    const searchInput = document.getElementById('searchInput');
+    const statusMsg = document.getElementById('statusMsg');
+    const resultsGrid = document.getElementById('resultsGrid');
+    const lyricsView = document.getElementById('lyricsView');
+    const currentTitle = document.getElementById('currentTitle');
+    const currentArtist = document.getElementById('currentArtist');
+    const lyricsContent = document.getElementById('lyricsContent');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const toast = document.getElementById('toast');
+
+    let activeTrack = { id: '', title: '', artist: '', lyrics: '' };
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    searchForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const query = searchInput.value.trim();
+      if (!query) return;
+
+      statusMsg.style.display = 'block';
+      statusMsg.textContent = 'Fetching tracks...';
+      resultsGrid.innerHTML = '';
+      lyricsView.style.display = 'none';
+
+      try {
+        // Internal proxy endpoint hides backend target
+        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+        const json = await res.json();
+
+        if (!json.success || !json.data || json.data.length === 0) {
+          statusMsg.textContent = 'No tracks found. Try another search term.';
+          return;
+        }
+
+        statusMsg.style.display = 'none';
+        renderTracks(json.data);
+      } catch (err) {
+        statusMsg.textContent = 'Error loading results. Please try again.';
+      }
+    });
+
+    function renderTracks(tracks) {
+      resultsGrid.innerHTML = tracks.map(track => `
+        <div class="track-card" onclick="fetchLyrics('${track.id}', '${encodeURIComponent(track.title)}', '${encodeURIComponent(track.artist)}')">
+          <img src="${track.cover || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150'}" alt="Cover" onerror="this.src='https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150'"/>
+          <div class="track-info">
+            <div class="track-title">${escapeHtml(track.title)}</div>
+            <div class="track-artist">${escapeHtml(track.artist)}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    window.fetchLyrics = async (id, encTitle, encArtist) => {
+      const title = decodeURIComponent(encTitle);
+      const artist = decodeURIComponent(encArtist);
+
+      statusMsg.style.display = 'block';
+      statusMsg.textContent = `Fetching lyrics for "${title}"...`;
+      lyricsView.style.display = 'none';
+
+      try {
+        // Internal masked endpoint
+        const res = await fetch(`/api/lyrics?id=${encodeURIComponent(id)}`);
+        const json = await res.json();
+
+        if (!json.success || !json.plainLyrics) {
+          statusMsg.textContent = 'Lyrics not available for this track.';
+          return;
+        }
+
+        statusMsg.style.display = 'none';
+        lyricsView.style.display = 'block';
+        currentTitle.textContent = title;
+        currentArtist.textContent = artist;
+        lyricsContent.textContent = json.plainLyrics;
+
+        activeTrack = {
+          id,
+          title,
+          artist,
+          lyrics: json.plainLyrics
+        };
+
+        lyricsView.scrollIntoView({ behavior: 'smooth' });
+      } catch (err) {
+        statusMsg.textContent = 'Failed to load lyrics. Please try again.';
+      }
+    };
+
+    downloadBtn.addEventListener('click', () => {
+      if (!activeTrack.lyrics) return;
+
+      const fileContent = `Title: ${activeTrack.title}\nArtist: ${activeTrack.artist}\n\n----------------------------------\n\n${activeTrack.lyrics}\n`;
+      const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const filename = `${activeTrack.title.replace(/[^a-zA-Z0-9_-]/g, '_')}_Lyrics.txt`;
+
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showToast('File downloaded successfully!');
+    });
+
+    copyBtn.addEventListener('click', () => {
+      if (!activeTrack.lyrics) return;
+      navigator.clipboard.writeText(activeTrack.lyrics).then(() => {
+        showToast('Lyrics copied to clipboard!');
+      });
+    });
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>"']/g, function(m) {
+        return {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#039;'
+        }[m];
+      });
+    }
+  </script>
+</body>
+  </html>
